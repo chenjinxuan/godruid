@@ -1,7 +1,7 @@
 package godruid
 
 import (
-	"encoding/json"
+	json "github.com/json-iterator/go"
 )
 
 type PostAggregation struct {
@@ -63,10 +63,11 @@ func PostAggArithmetic(name, fn string, fields []PostAggregation) PostAggregatio
 	}
 }
 
-func PostAggFieldAccessor(fieldName string) PostAggregation {
+func PostAggFieldAccessor(name, fieldName string) PostAggregation {
 	return PostAggregation{
 		Type:      "fieldAccess",
 		FieldName: fieldName,
+		Name:      name,
 	}
 }
 

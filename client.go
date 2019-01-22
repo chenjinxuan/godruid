@@ -2,27 +2,47 @@ package godruid
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
+	json "github.com/json-iterator/go"
 	"io/ioutil"
+	"net"
 	"net/http"
+	"time"
 )
 
 const (
 	DefaultEndPoint = "/druid/v2"
 )
 
-type Client struct {
-	Url      string
-	EndPoint string
+var DefaultTransport *http.Transport = &http.Transport{
+	Dial: (&net.Dialer{
+		Timeout:   20 * time.Second,
+		KeepAlive: 30 * time.Second,
+	}).Dial,
+	TLSHandshakeTimeout: 20 * time.Second,
+}
 
+type Client struct {
+	Url          string
 	Debug        bool
 	LastRequest  string
 	LastResponse string
 	HttpClient   *http.Client
 }
 
-func (c *Client) Query(query Query, authToken string) (err error) {
+func NewClient(urlStr string, httpClient *http.Client) *Client {
+	client := &Client{
+		Url:        urlStr,
+		HttpClient: &http.Client{Transport: DefaultTransport},
+	}
+	if httpClient != nil {
+		client.HttpClient = httpClient
+	}
+	return client
+
+}
+
+func (c *Client) Query(query Query) (res interface{}, err error) {
 	query.setup()
 	var reqJson []byte
 	if c.Debug {
@@ -33,40 +53,28 @@ func (c *Client) Query(query Query, authToken string) (err error) {
 	if err != nil {
 		return
 	}
-
-	result, err := c.QueryRaw(reqJson, authToken)
+	result, err := c.QueryRaw(reqJson)
 	if err != nil {
 		return
 	}
-
 	return query.onResponse(result)
 }
 
-func (c *Client) QueryRaw(req []byte, authToken string) (result []byte, err error) {
-	if c.EndPoint == "" {
-		c.EndPoint = DefaultEndPoint
-	}
-	endPoint := c.EndPoint
+func (c *Client) QueryRaw(req []byte) (result []byte, err error) {
+	queryUrl := c.Url
 	if c.Debug {
-		endPoint += "?pretty"
+		queryUrl += "?pretty"
 		c.LastRequest = string(req)
 	}
 	if err != nil {
 		return
 	}
 
-	request, err := http.NewRequest("POST", c.Url+endPoint, bytes.NewBuffer(req))
+	request, err := http.NewRequest("POST", queryUrl, bytes.NewBuffer(req))
 	if err != nil {
 		return nil, err
 	}
 	request.Header.Set("Content-Type", "application/json")
-	if authToken != "" {
-		cookie := &http.Cookie{
-			Name:  "skylight-aaa",
-			Value: authToken,
-		}
-		request.AddCookie(cookie)
-	}
 
 	resp, err := c.HttpClient.Do(request)
 	defer func() {

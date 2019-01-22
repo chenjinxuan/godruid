@@ -17,7 +17,7 @@ func TestGroupby(t *testing.T) {
 			Dimensions:   []DimSpec{"campaign_id"},
 			Aggregations: []Aggregation{AggRawJson(`{ "type" : "count", "name" : "count" }`), AggLongSum("impressions", "impressions")},
 			PostAggregations: []PostAggregation{PostAggArithmetic("imp/count", "/", []PostAggregation{
-				PostAggFieldAccessor("impressions"),
+				PostAggFieldAccessor("impressions","fds"),
 				PostAggRawJson(`{ "type" : "fieldAccess", "fieldName" : "count" }`)})},
 		}
 		client := Client{

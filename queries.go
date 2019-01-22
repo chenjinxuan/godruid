@@ -1,7 +1,7 @@
 package godruid
 
 import (
-	"encoding/json"
+	json "github.com/json-iterator/go"
 )
 
 // Check http://druid.io/docs/0.6.154/Querying.html#query-operators for detail description.
@@ -9,21 +9,20 @@ import (
 // The Query interface stands for any kinds of druid query.
 type Query interface {
 	setup()
-	onResponse(content []byte) error
+	onResponse(content []byte) (interface{}, error)
 	GetRawJSON() []byte
+	GetQueryType() string
 }
 
-type QueryType string
-
 const (
-	TIMESERIES      QueryType = "timeseries"
-	TOPN            QueryType = "topN"
-	SEARCH          QueryType = "search"
-	GROUPBY         QueryType = "groupBy"
-	SEGMENTMETADATA QueryType = "segmentMetadata"
-	TIMEBOUNDARY    QueryType = "timeBoundary"
-	SELECT          QueryType = "select"
-	SCAN            QueryType = "scan"
+	TIMESERIES      string = "timeseries"
+	TOPN            string = "topN"
+	SEARCH          string = "search"
+	GROUPBY         string = "groupBy"
+	SEGMENTMETADATA string = "segmentMetadata"
+	TIMEBOUNDARY    string = "timeBoundary"
+	SELECT          string = "select"
+	SCAN            string = "scan"
 )
 
 // Context constants
@@ -38,7 +37,7 @@ const (
 // ---------------------------------
 
 type QueryGroupBy struct {
-	QueryType        QueryType              `json:"queryType"`
+	QueryType        string                 `json:"queryType"`
 	DataSource       string                 `json:"dataSource"`
 	Dimensions       []DimSpec              `json:"dimensions"`
 	Granularity      Granlarity             `json:"granularity"`
@@ -62,15 +61,19 @@ type GroupbyItem struct {
 
 func (q *QueryGroupBy) setup()             { q.QueryType = GROUPBY }
 func (q *QueryGroupBy) GetRawJSON() []byte { return q.RawJSON }
-func (q *QueryGroupBy) onResponse(content []byte) error {
+func (q *QueryGroupBy) onResponse(content []byte) (interface{}, error) {
 	res := new([]GroupbyItem)
 	err := json.Unmarshal(content, res)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	q.QueryResult = *res
 	q.RawJSON = content
-	return nil
+	return q.QueryResult, nil
+}
+
+func (q *QueryGroupBy) GetQueryType() string {
+	return q.QueryType
 }
 
 // ---------------------------------
@@ -78,7 +81,7 @@ func (q *QueryGroupBy) onResponse(content []byte) error {
 // ---------------------------------
 
 type QuerySearch struct {
-	QueryType        QueryType              `json:"queryType"`
+	QueryType        string                 `json:"queryType"`
 	DataSource       string                 `json:"dataSource"`
 	Granularity      Granlarity             `json:"granularity"`
 	Filter           *Filter                `json:"filter,omitempty"`
@@ -104,15 +107,18 @@ type DimValue struct {
 
 func (q *QuerySearch) setup()             { q.QueryType = SEARCH }
 func (q *QuerySearch) GetRawJSON() []byte { return q.RawJSON }
-func (q *QuerySearch) onResponse(content []byte) error {
+func (q *QuerySearch) onResponse(content []byte) (interface{}, error) {
 	res := new([]SearchItem)
 	err := json.Unmarshal(content, res)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	q.QueryResult = *res
 	q.RawJSON = content
-	return nil
+	return q.QueryResult, nil
+}
+func (q *QuerySearch) GetQueryType() string {
+	return q.QueryType
 }
 
 // ---------------------------------
@@ -120,7 +126,7 @@ func (q *QuerySearch) onResponse(content []byte) error {
 // ---------------------------------
 
 type QuerySegmentMetadata struct {
-	QueryType      QueryType              `json:"queryType"`
+	QueryType      string                 `json:"queryType"`
 	DataSource     string                 `json:"dataSource"`
 	Intervals      Intervals              `json:"intervals"`
 	ToInclude      *ToInclude             `json:"toInclude,omitempty"`
@@ -145,15 +151,18 @@ type ColumnItem struct {
 
 func (q *QuerySegmentMetadata) setup()             { q.QueryType = "segmentMetadata" }
 func (q *QuerySegmentMetadata) GetRawJSON() []byte { return q.RawJSON }
-func (q *QuerySegmentMetadata) onResponse(content []byte) error {
+func (q *QuerySegmentMetadata) onResponse(content []byte) (interface{}, error) {
 	res := new([]SegmentMetaData)
 	err := json.Unmarshal(content, res)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	q.QueryResult = *res
 	q.RawJSON = content
-	return nil
+	return q.QueryResult, nil
+}
+func (q *QuerySegmentMetadata) GetQueryType() string {
+	return q.QueryType
 }
 
 // ---------------------------------
@@ -161,7 +170,7 @@ func (q *QuerySegmentMetadata) onResponse(content []byte) error {
 // ---------------------------------
 
 type QueryTimeBoundary struct {
-	QueryType  QueryType              `json:"queryType"`
+	QueryType  string                 `json:"queryType"`
 	DataSource string                 `json:"dataSource"`
 	Bound      string                 `json:"bound,omitempty"`
 	Context    map[string]interface{} `json:"context,omitempty"`
@@ -192,15 +201,19 @@ func (q *QueryTimeBoundary) onResponse(content []byte) error {
 	q.RawJSON = content
 	return nil
 }
+func (q *QueryTimeBoundary) GetQueryType() string {
+	return q.QueryType
+}
 
 // ---------------------------------
 // Timeseries Query
 // ---------------------------------
 
 type QueryTimeseries struct {
-	QueryType        QueryType              `json:"queryType"`
+	QueryType        string                 `json:"queryType"`
 	DataSource       string                 `json:"dataSource"`
 	Granularity      Granlarity             `json:"granularity"`
+	Descending       bool                   `json:"descending"`
 	Filter           *Filter                `json:"filter,omitempty"`
 	Aggregations     []Aggregation          `json:"aggregations"`
 	PostAggregations []PostAggregation      `json:"postAggregations,omitempty"`
@@ -218,15 +231,18 @@ type Timeseries struct {
 
 func (q *QueryTimeseries) setup()             { q.QueryType = TIMESERIES }
 func (q *QueryTimeseries) GetRawJSON() []byte { return q.RawJSON }
-func (q *QueryTimeseries) onResponse(content []byte) error {
+func (q *QueryTimeseries) onResponse(content []byte) (interface{}, error) {
 	res := new([]Timeseries)
 	err := json.Unmarshal(content, res)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	q.QueryResult = *res
 	q.RawJSON = content
-	return nil
+	return q.QueryResult, nil
+}
+func (q *QueryTimeseries) GetQueryType() string {
+	return q.QueryType
 }
 
 // ---------------------------------
@@ -234,7 +250,7 @@ func (q *QueryTimeseries) onResponse(content []byte) error {
 // ---------------------------------
 
 type QueryTopN struct {
-	QueryType        QueryType              `json:"queryType"`
+	QueryType        string                 `json:"queryType"`
 	DataSource       string                 `json:"dataSource"`
 	Granularity      Granlarity             `json:"granularity"`
 	Dimension        DimSpec                `json:"dimension"`
@@ -257,15 +273,18 @@ type TopNItem struct {
 
 func (q *QueryTopN) setup()             { q.QueryType = TOPN }
 func (q *QueryTopN) GetRawJSON() []byte { return q.RawJSON }
-func (q *QueryTopN) onResponse(content []byte) error {
+func (q *QueryTopN) onResponse(content []byte) (interface{}, error) {
 	res := new([]TopNItem)
 	err := json.Unmarshal(content, res)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	q.QueryResult = *res
 	q.RawJSON = content
-	return nil
+	return q.QueryResult, nil
+}
+func (q *QueryTopN) GetQueryType() string {
+	return q.QueryType
 }
 
 // ---------------------------------
@@ -273,7 +292,7 @@ func (q *QueryTopN) onResponse(content []byte) error {
 // ---------------------------------
 
 type QuerySelect struct {
-	QueryType      QueryType              `json:"queryType"`
+	QueryType      string                 `json:"queryType"`
 	DataSource     string                 `json:"dataSource"`
 	Intervals      Intervals              `json:"intervals"`
 	Filter         *Filter                `json:"filter,omitempty"`
@@ -309,11 +328,11 @@ type SelectEvent struct {
 
 func (q *QuerySelect) setup()             { q.QueryType = SELECT }
 func (q *QuerySelect) GetRawJSON() []byte { return q.RawJSON }
-func (q *QuerySelect) onResponse(content []byte) error {
+func (q *QuerySelect) onResponse(content []byte) (interface{}, error) {
 	res := new([]SelectBlob)
 	err := json.Unmarshal(content, res)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if len(*res) == 0 {
 		q.QueryResult = SelectBlob{}
@@ -321,7 +340,10 @@ func (q *QuerySelect) onResponse(content []byte) error {
 		q.QueryResult = (*res)[0]
 	}
 	q.RawJSON = content
-	return nil
+	return q.QueryResult, nil
+}
+func (q *QuerySelect) GetQueryType() string {
+	return q.QueryType
 }
 
 // ---------------------------------
@@ -329,7 +351,7 @@ func (q *QuerySelect) onResponse(content []byte) error {
 // ---------------------------------
 
 type QueryScan struct {
-	QueryType      QueryType              `json:"queryType"`
+	QueryType      string                 `json:"queryType"`
 	DataSource     string                 `json:"dataSource"`
 	Limit          int                    `json:"limit,omitempty"`
 	Columns        []string               `json:"columns,omitempty"`
@@ -351,15 +373,19 @@ type ScanBlob struct {
 
 func (q *QueryScan) setup()             { q.QueryType = SCAN }
 func (q *QueryScan) GetRawJSON() []byte { return q.RawJSON }
-func (q *QueryScan) onResponse(content []byte) error {
+func (q *QueryScan) onResponse(content []byte) (interface{}, error) {
 	res := new([]ScanBlob)
 	err := json.Unmarshal(content, res)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	q.QueryResult = *res
 	q.RawJSON = content
-	return nil
+	return q.QueryResult, nil
+}
+
+func (q *QueryScan) GetQueryType() string {
+	return q.QueryType
 }
 
 type VirtualColumn struct {

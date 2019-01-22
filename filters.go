@@ -74,6 +74,15 @@ func FilterLowerUpperBound(dimension string, ordering Ordering, lowerBound float
 	}
 }
 
+func FilterLike(dimension string, value string) *Filter {
+	value = "%" + value + "%"
+	return &Filter{
+		Type:      "like",
+		Dimension: dimension,
+		Pattern:   value,
+	}
+}
+
 func FilterRegex(dimension, pattern string) *Filter {
 	return &Filter{
 		Type:      "regex",
@@ -102,6 +111,14 @@ func FilterNot(filter *Filter) *Filter {
 	return &Filter{
 		Type:  "not",
 		Field: filter,
+	}
+}
+
+func FilterIn(dimension string, values []interface{}) *Filter {
+	return &Filter{
+		Type:      "in",
+		Dimension: dimension,
+		Values:    values,
 	}
 }
 
