@@ -50,7 +50,7 @@ type QueryGroupBy struct {
 	Context          map[string]interface{} `json:"context,omitempty"`
 	VirtualColumns   []VirtualColumn        `json:"virtualColumns,omitempty"`
 	QueryResult      []GroupbyItem          `json:"-"`
-	RawJSON          []byte
+	RawJSON          []byte                 `json:"raw_json,omitempty"`
 }
 
 type GroupbyItem struct {
@@ -92,7 +92,7 @@ type QuerySearch struct {
 	Context          map[string]interface{} `json:"context,omitempty"`
 	VirtualColumns   []VirtualColumn        `json:"virtualColumns,omitempty"`
 	QueryResult      []SearchItem           `json:"-"`
-	RawJSON          []byte
+	RawJSON          []byte                 `json:"raw_json,omitempty"`
 }
 
 type SearchItem struct {
@@ -134,7 +134,7 @@ type QuerySegmentMetadata struct {
 	Context        map[string]interface{} `json:"context,omitempty"`
 	VirtualColumns []VirtualColumn        `json:"virtualColumns,omitempty"`
 	QueryResult    []SegmentMetaData      `json:"-"`
-	RawJSON        []byte
+	RawJSON        []byte                 `json:"raw_json,omitempty"`
 }
 
 type SegmentMetaData struct {
@@ -176,7 +176,7 @@ type QueryTimeBoundary struct {
 	Context    map[string]interface{} `json:"context,omitempty"`
 
 	QueryResult []TimeBoundaryItem `json:"-"`
-	RawJSON     []byte
+	RawJSON     []byte             `json:"raw_json,omitempty"`
 }
 
 type TimeBoundaryItem struct {
@@ -221,7 +221,7 @@ type QueryTimeseries struct {
 	Context          map[string]interface{} `json:"context,omitempty"`
 	VirtualColumns   []VirtualColumn        `json:"virtualColumns,omitempty"`
 	QueryResult      []Timeseries           `json:"-"`
-	RawJSON          []byte
+	RawJSON          []byte                 `json:"raw_json,omitempty"`
 }
 
 type Timeseries struct {
@@ -263,7 +263,7 @@ type QueryTopN struct {
 	Context          map[string]interface{} `json:"context,omitempty"`
 	VirtualColumns   []VirtualColumn        `json:"virtualColumns,omitempty"`
 	QueryResult      []TopNItem             `json:"-"`
-	RawJSON          []byte
+	RawJSON          []byte                 `json:"raw_json,omitempty"`
 }
 
 type TopNItem struct {
@@ -303,7 +303,7 @@ type QuerySelect struct {
 	Context        map[string]interface{} `json:"context,omitempty"`
 	VirtualColumns []VirtualColumn        `json:"virtualColumns,omitempty"`
 	QueryResult    SelectBlob             `json:"-"`
-	RawJSON        []byte
+	RawJSON        []byte                 `json:"raw_json,omitempty"`
 }
 
 // Select json blob from druid comes back as following:
@@ -362,7 +362,7 @@ type QueryScan struct {
 	Context        map[string]interface{} `json:"context,omitempty"`
 	VirtualColumns []VirtualColumn        `json:"virtualColumns,omitempty"`
 	QueryResult    []ScanBlob             `json:"-"`
-	RawJSON        []byte
+	RawJSON        []byte                 `json:"raw_json,omitempty"`
 }
 
 type ScanBlob struct {

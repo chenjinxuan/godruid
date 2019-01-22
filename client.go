@@ -23,30 +23,37 @@ var DefaultTransport *http.Transport = &http.Transport{
 }
 
 type Client struct {
-	Url          string
-	Debug        bool
-	LastRequest  string
-	LastResponse string
-	HttpClient   *http.Client
+	url          string
+	debug        bool
+	lastRequest  string
+	lastResponse string
+	httpClient   *http.Client
 }
 
 func NewClient(urlStr string, httpClient *http.Client) *Client {
 	client := &Client{
-		Url:        urlStr,
-		HttpClient: &http.Client{Transport: DefaultTransport},
+		url:        urlStr,
+		httpClient: &http.Client{Transport: DefaultTransport},
 	}
 	if httpClient != nil {
-		client.HttpClient = httpClient
+		client.httpClient = httpClient
 	}
 	return client
 
+}
+func (c *Client) SetDebug(debug bool) {
+	c.debug = debug
+}
+func (c *Client) GetDebug() bool {
+	return c.debug
 }
 
 func (c *Client) Query(query Query) (res interface{}, err error) {
 	query.setup()
 	var reqJson []byte
-	if c.Debug {
+	if c.debug {
 		reqJson, err = json.MarshalIndent(query, "", "  ")
+		fmt.Println("req => ", string(reqJson))
 	} else {
 		reqJson, err = json.Marshal(query)
 	}
@@ -57,14 +64,17 @@ func (c *Client) Query(query Query) (res interface{}, err error) {
 	if err != nil {
 		return
 	}
+	if c.debug {
+		fmt.Println("res => ", string(result))
+	}
 	return query.onResponse(result)
 }
 
 func (c *Client) QueryRaw(req []byte) (result []byte, err error) {
-	queryUrl := c.Url
-	if c.Debug {
+	queryUrl := c.url
+	if c.debug {
 		queryUrl += "?pretty"
-		c.LastRequest = string(req)
+		c.lastRequest = string(req)
 	}
 	if err != nil {
 		return
@@ -76,7 +86,7 @@ func (c *Client) QueryRaw(req []byte) (result []byte, err error) {
 	}
 	request.Header.Set("Content-Type", "application/json")
 
-	resp, err := c.HttpClient.Do(request)
+	resp, err := c.httpClient.Do(request)
 	defer func() {
 		resp.Body.Close()
 	}()
@@ -89,8 +99,8 @@ func (c *Client) QueryRaw(req []byte) (result []byte, err error) {
 	if err != nil {
 		return
 	}
-	if c.Debug {
-		c.LastResponse = string(result)
+	if c.debug {
+		c.lastResponse = string(result)
 	}
 
 	if resp.StatusCode != http.StatusOK {
