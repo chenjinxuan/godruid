@@ -2,6 +2,7 @@ package godruid
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	json "github.com/json-iterator/go"
 	"io/ioutil"
@@ -16,10 +17,10 @@ const (
 
 var DefaultTransport *http.Transport = &http.Transport{
 	Dial: (&net.Dialer{
-		Timeout:   20 * time.Second,
+		Timeout:   30 * time.Second,
 		KeepAlive: 30 * time.Second,
 	}).Dial,
-	TLSHandshakeTimeout: 20 * time.Second,
+	TLSHandshakeTimeout: 10 * time.Second,
 }
 
 type Client struct {
@@ -48,7 +49,7 @@ func (c *Client) GetDebug() bool {
 	return c.debug
 }
 
-func (c *Client) Query(query Query) (res interface{}, err error) {
+func (c *Client) Query(ctx context.Context, query Query) (res interface{}, err error) {
 	query.setup()
 	var reqJson []byte
 	if c.debug {
@@ -60,7 +61,7 @@ func (c *Client) Query(query Query) (res interface{}, err error) {
 	if err != nil {
 		return
 	}
-	result, err := c.QueryRaw(reqJson)
+	result, err := c.QueryRaw(ctx, reqJson)
 	if err != nil {
 		return
 	}
@@ -70,7 +71,7 @@ func (c *Client) Query(query Query) (res interface{}, err error) {
 	return query.onResponse(result)
 }
 
-func (c *Client) QueryRaw(req []byte) (result []byte, err error) {
+func (c *Client) QueryRaw(ctx context.Context, req []byte) (result []byte, err error) {
 	queryUrl := c.url
 	if c.debug {
 		queryUrl += "?pretty"
@@ -85,7 +86,9 @@ func (c *Client) QueryRaw(req []byte) (result []byte, err error) {
 		return nil, err
 	}
 	request.Header.Set("Content-Type", "application/json")
-
+	if ctx != nil {
+		request = request.WithContext(ctx)
+	}
 	resp, err := c.httpClient.Do(request)
 	defer func() {
 		resp.Body.Close()
